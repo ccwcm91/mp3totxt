@@ -5,13 +5,13 @@ import whisper
 
 os.environ["PATH"] += os.pathsep + r"D:\tools_exe\ffmpeg-7.0.1-full_build\bin"
 
-model = whisper.load_model("medium") # tiny / base / small / medium / large
+model = whisper.load_model("large") # tiny / base / small / medium / large
 
 print("🚀 開始轉錄...")
 
 result = model.transcribe(
     "audio.mp3",
-    language=None,
+    language=ja,
     task="transcribe",
     verbose=True,
     initial_prompt="""
