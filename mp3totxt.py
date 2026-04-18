@@ -32,9 +32,11 @@ segments, info = model.transcribe(
 """,
     # --- 對應原始參數的設定 ---
     condition_on_previous_text=False, 
-    no_speech_threshold=0.6,
+    no_speech_threshold=0.8,
     beam_size=5,        # 相當於穩定度，預設 5
     temperature=0,      # 固定輸出，不亂猜
+    vad_filter=True,
+    vad_parameters=dict(min_silence_duration_ms=1000),
 )
 
 # 4. 輸出檔案
