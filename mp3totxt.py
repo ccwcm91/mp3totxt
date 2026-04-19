@@ -4,52 +4,66 @@ import torch
 
 # 1. 環境設定
 os.environ["PATH"] += os.pathsep + r"D:\tools_exe\ffmpeg-7.0.1-full_build\bin"
-audio_file = "audio.mp3"
 
-# 修改後的環境判斷
+# 設定輸入與輸出資料夾路徑
+input_folder = "input_mp3"
+output_folder = "output_txt"
+
+# 如果資料夾不存在則建立
+if not os.path.exists(input_folder):
+    os.makedirs(input_folder)
+    print(f"📁 已建立輸入資料夾：{input_folder}，請將 MP3 放入後重新執行。")
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# 2. 模型載入 (放在迴圈外，只需執行一次)
 device = "cuda" if torch.cuda.is_available() else "cpu"
+compute_type = "float32" if device == "cuda" else "int8"
 
-if device == "cuda":
-    # 如果 float16 報錯，通常改用 float32 絕對沒問題
-    # 或者嘗試 "int8_float16" (在某些舊卡上比 float16 相容性更好)
-    compute_type = "float32" 
-else:
-    compute_type = "int8"
-
-print(f"🚀 啟動 GPU 加速轉錄 (Device: {device}, Precision: {compute_type})...")
+print(f"🚀 載入模型中 (Device: {device}, Precision: {compute_type})...")
 model = WhisperModel("turbo", device=device, compute_type=compute_type)
 
-# 3. 執行轉錄
-# faster-whisper 的 transcribe 會回傳一個 generator，效率更高
-segments, info = model.transcribe(
-    audio_file,
-    language="ja",
-    task="transcribe",
-    initial_prompt="""
+# 3. 獲取資料夾內所有 mp3 檔案清單
+audio_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".mp3")]
+
+if not audio_files:
+    print(f"❌ 在 {input_folder} 中找不到任何 MP3 檔案。")
+else:
+    print(f"🎵 找到 {len(audio_files)} 個檔案，準備開始轉錄...\n")
+
+# 4. 迴圈處理每一個檔案
+for filename in audio_files:
+    input_path = os.path.join(input_folder, filename)
+    base_name = os.path.splitext(filename)[0]
+    output_path = os.path.join(output_folder, f"{base_name}.txt")
+    
+    print(f"--- ⏳ 正在處理: {filename} ---")
+    
+    # 執行轉錄
+    segments, info = model.transcribe(
+        input_path,
+        language="ja",
+        task="transcribe",
+        initial_prompt="""
 這是中文與日文混合的語音學習內容。
 日文請使用標準書寫（漢字優先，例如：先生，並且在後標註假名）。
 禁止使用羅馬字或錯誤音譯。
 """,
-    # --- 對應原始參數的設定 ---
-    condition_on_previous_text=False, 
-    no_speech_threshold=0.8,
-    beam_size=5,        # 相當於穩定度，預設 5
-    temperature=0,      # 固定輸出，不亂猜
-    vad_filter=True,
-    vad_parameters=dict(min_silence_duration_ms=1000),
-)
+        condition_on_previous_text=False, 
+        no_speech_threshold=0.8,
+        beam_size=5,
+        temperature=0,
+        vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=1000),
+    )
 
-# 4. 輸出檔案
-base_name = os.path.splitext(os.path.basename(audio_file))[0]
-output_file = base_name + ".txt"
+    # 寫入檔案
+    with open(output_path, "w", encoding="utf-8") as f:
+        for segment in segments:
+            line = f"[{segment.start:.2f} --> {segment.end:.2f}] {segment.text.strip()}"
+            print(line) # 如果想在螢幕看即時進度可以取消註解
+            f.write(line + "\n")
+    
+    print(f"✅ 完成！結果儲存至: {output_path}\n")
 
-print(f"偵測到語言: {info.language} (信心度: {info.language_probability:.2f})")
-
-with open(output_file, "w", encoding="utf-8") as f:
-    for segment in segments:
-        # 即時印出進度 (對應 verbose=True)
-        line = f"[{segment.start:.2f} --> {segment.end:.2f}] {segment.text.strip()}"
-        print(line)
-        f.write(line + "\n")
-
-print(f"\n✅ 任務完成！結果已存入：{output_file}")
+print("✨ 所有任務執行完畢！")
