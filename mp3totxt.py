@@ -56,14 +56,18 @@ for filename in audio_files:
         vad_filter=True,
         vad_parameters=dict(min_silence_duration_ms=1000),
     )
-
+    
     # 寫入檔案
     with open(output_path, "w", encoding="utf-8") as f:
         for segment in segments:
-            line = f"[{segment.start:.2f} --> {segment.end:.2f}] {segment.text.strip()}"
-            print(line) # 如果想在螢幕看即時進度可以取消註解
+            # 換算 分:秒
+            t_s = f"{int(segment.start//60):02}:{int(segment.start%60):02}"
+            t_e = f"{int(segment.end//60):02}:{int(segment.end%60):02}"
+            
+            line = f"[{t_s} --> {t_e}] {segment.text.strip()}"
+            print(line)
             f.write(line + "\n")
-    
+
     print(f"✅ 完成！結果儲存至: {output_path}\n")
 
 print("✨ 所有任務執行完畢！")
