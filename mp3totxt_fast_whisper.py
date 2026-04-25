@@ -7,7 +7,7 @@ os.environ["PATH"] += os.pathsep + r"D:\tools_exe\ffmpeg-7.0.1-full_build\bin"
 
 # 設定輸入與輸出資料夾路徑
 input_folder = "input_mp3"
-output_folder = "output_txt"
+output_folder = "output_txt_fast_whisper"
 
 # 如果資料夾不存在則建立
 if not os.path.exists(input_folder):
